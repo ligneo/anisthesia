@@ -103,6 +103,16 @@ GOM Player
 		window_title:
 			^GOM Player(?: Plus)|(.+)(?:\[Subtitle\]) - GOM Player(?: Plus)
 
+Haruna
+	windows:
+		^Qt.+QWindow(OwnDC)?Icon
+	executables:
+		haruna
+	strategies:
+		open_files
+		window_title:
+			^Haruna|(.+) - Haruna
+
 Kantaris
 	windows:
 		^WindowsForms10\.Window\.20008\.app\..+
