@@ -11,6 +11,7 @@ namespace anisthesia::lin {
 struct Process {
   int id = 0;
   std::string name;
+  std::string comm;
 };
 
 struct Result {

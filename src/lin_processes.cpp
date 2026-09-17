@@ -17,6 +17,13 @@ bool ParseProcessId(const std::string& str, int& process_id) {
   return ec == std::errc{} && ptr == end;
 }
 
+std::string GetCommandName(const fs::path& process_path) {
+  std::ifstream file(process_path / "comm");
+  std::string name;
+  std::getline(file, name);
+  return name;
+}
+
 std::string GetProcessName(const fs::path& process_path) {
   // The executable path is only readable for our own processes, which is fine
   // since we cannot read the open files of other users' processes either.
@@ -26,10 +33,7 @@ std::string GetProcessName(const fs::path& process_path) {
     return executable_path.filename().string();
 
   // Fall back to the command name, which is truncated to 15 characters
-  std::ifstream file(process_path / "comm");
-  std::string name;
-  std::getline(file, name);
-  return name;
+  return GetCommandName(process_path);
 }
 
 bool EnumerateProcesses(process_proc_t process_proc) {
@@ -46,6 +50,8 @@ bool EnumerateProcesses(process_proc_t process_proc) {
     process.name = GetProcessName(entry.path());
     if (process.name.empty())
       continue;
+
+    process.comm = GetCommandName(entry.path());
 
     if (!process_proc(process))
       break;
