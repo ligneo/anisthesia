@@ -523,6 +523,19 @@ Opera
 	type:
 		web_browser
 
+Vivaldi
+	windows:
+		Chrome_WidgetWin_1
+	executables:
+		vivaldi
+		vivaldi-bin
+	strategies:
+		ui_automation
+		window_title:
+			^(.+) - Vivaldi
+	type:
+		web_browser
+
 Waterfox
 	windows:
 		MozillaWindowClass
