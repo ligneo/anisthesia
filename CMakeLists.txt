@@ -17,6 +17,7 @@ target_include_directories(anisthesia INTERFACE ${CMAKE_CURRENT_LIST_DIR}/includ
 
 target_sources(anisthesia INTERFACE
 	src/matroska.cpp
+	src/platform.cpp
 	src/player.cpp
 	src/util.cpp
 )

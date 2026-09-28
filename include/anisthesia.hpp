@@ -1,6 +1,7 @@
 #pragma once
 
 #include <anisthesia/media.hpp>
+#include <anisthesia/platform.hpp>
 #include <anisthesia/player.hpp>
 
 #ifdef _WIN32
