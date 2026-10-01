@@ -2,6 +2,7 @@
 #include <filesystem>
 #include <fstream>
 #include <string>
+#include <string_view>
 #include <system_error>
 
 #include <anisthesia/lin_platform.hpp>
@@ -29,8 +30,15 @@ std::string GetProcessName(const fs::path& process_path) {
   // since we cannot read the open files of other users' processes either.
   std::error_code ec;
   const auto executable_path = fs::read_symlink(process_path / "exe", ec);
-  if (!ec && !executable_path.empty())
-    return executable_path.filename().string();
+  if (!ec && !executable_path.empty()) {
+    // The kernel marks an executable that was replaced on disk, as happens to
+    // players left running through a package upgrade.
+    constexpr std::string_view deleted = " (deleted)";
+    auto name = executable_path.filename().string();
+    if (name.ends_with(deleted))
+      name.resize(name.size() - deleted.size());
+    return name;
+  }
 
   // Fall back to the command name, which is truncated to 15 characters
   return GetCommandName(process_path);
