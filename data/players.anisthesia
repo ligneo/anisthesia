@@ -509,6 +509,7 @@ Mozilla Firefox
 		MozillaWindowClass
 	executables:
 		firefox
+		firefox-esr
 	strategies:
 		media_control
 		ui_automation
