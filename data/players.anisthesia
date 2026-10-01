@@ -432,6 +432,7 @@ Brave Browser
 	executables:
 		brave
 	strategies:
+		media_control
 		ui_automation
 		window_title:
 			^(.+) \(Private\)(?: - Brave)?|(.+) - Brave|(.+)
@@ -444,6 +445,7 @@ Chromium
 	executables:
 		chromium
 	strategies:
+		media_control
 		ui_automation
 		window_title:
 			^(.+) \(Incognito\)(?: - Chromium)?|(.+) - Chromium|(.+)
@@ -456,6 +458,7 @@ Google Chrome
 	executables:
 		chrome
 	strategies:
+		media_control
 		ui_automation
 		window_title:
 			^(.+) \(Incognito\)(?: - Google Chrome)?|(.+) - Google Chrome|(.+)
@@ -480,6 +483,7 @@ LibreWolf
 	executables:
 		librewolf
 	strategies:
+		media_control
 		ui_automation
 		window_title:
 			^(.+) (?:-|—) LibreWolf(?: Private Browsing)?
@@ -492,6 +496,7 @@ Microsoft Edge
 	executables:
 		msedge
 	strategies:
+		media_control
 		ui_automation
 		window_title:
 			^(.+) and \d+ more pages? - .+|(.+) - [^-]+ - Microsoft.*Edge|(.+)
@@ -505,6 +510,7 @@ Mozilla Firefox
 	executables:
 		firefox
 	strategies:
+		media_control
 		ui_automation
 		window_title:
 			^(?:Mozilla Firefox|Firefox Developer Edition)|(.+) (?:-|—) (?:Mozilla Firefox|Firefox Developer Edition)(?: \(Private Browsing\))?
@@ -517,6 +523,7 @@ Opera
 	executables:
 		opera
 	strategies:
+		media_control
 		ui_automation
 		window_title:
 			^(.+) - Opera(?: \(Private\))?
@@ -530,6 +537,7 @@ Vivaldi
 		vivaldi
 		vivaldi-bin
 	strategies:
+		media_control
 		ui_automation
 		window_title:
 			^(.+) - Vivaldi
@@ -542,6 +550,7 @@ Waterfox
 	executables:
 		waterfox
 	strategies:
+		media_control
 		ui_automation
 		window_title:
 			^(.+) - Waterfox(?: \(Private Browsing\))?

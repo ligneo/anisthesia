@@ -33,9 +33,20 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	)
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
 	target_sources(anisthesia INTERFACE
+		src/lin_mpris.cpp
 		src/lin_open_files.cpp
 		src/lin_platform.cpp
 		src/lin_processes.cpp
 		src/lin_strategies.cpp
 	)
+
+	# Media control (MPRIS) needs sd-bus. Without it, players are detected by
+	# their open files only, which leaves out web browsers.
+	option(ANISTHESIA_MPRIS "Read media control information via sd-bus" ON)
+	if (ANISTHESIA_MPRIS)
+		find_package(PkgConfig REQUIRED)
+		pkg_check_modules(SYSTEMD REQUIRED IMPORTED_TARGET GLOBAL libsystemd)
+		target_compile_definitions(anisthesia INTERFACE ANISTHESIA_MPRIS)
+		target_link_libraries(anisthesia INTERFACE PkgConfig::SYSTEMD)
+	endif()
 endif()
