@@ -103,10 +103,6 @@ bool Strategist::ApplyMediaControlStrategy() {
     // Stopped players keep reporting what they played last
     if (player.state == MediaState::Stopped)
       continue;
-    // A page title alone could be any page; only the address tells which site
-    // it is from. Chromium leaves it out.
-    if (result_.player.type == PlayerType::WebBrowser && player.url.empty())
-      continue;
 
     Media media;
     media.state = player.state;
