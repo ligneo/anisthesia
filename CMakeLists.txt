@@ -40,8 +40,9 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
 		src/lin_strategies.cpp
 	)
 
-	# Media control (MPRIS) needs sd-bus. Without it, players are detected by
-	# their open files only, which leaves out web browsers.
+	# Media control (MPRIS) needs sd-bus. It can be left out with
+	# -DANISTHESIA_MPRIS=OFF, in which case players are detected by their open
+	# files only and web browsers are not detected at all.
 	option(ANISTHESIA_MPRIS "Read media control information via sd-bus" ON)
 	if (ANISTHESIA_MPRIS)
 		find_package(PkgConfig REQUIRED)
