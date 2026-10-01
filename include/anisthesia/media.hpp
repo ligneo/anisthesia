@@ -31,8 +31,8 @@ struct MediaInfo {
 
 struct Media {
   MediaState state = MediaState::Unknown;
-  media_time_t duration;
-  media_time_t position;
+  media_time_t duration{};
+  media_time_t position{};
   std::vector<MediaInfo> information;
 };
 
