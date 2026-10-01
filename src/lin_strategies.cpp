@@ -56,14 +56,16 @@ bool ApplyStrategies(media_proc_t media_proc, std::vector<Result>& results) {
   bool success = false;
 
   // Players are listed once for all processes, and only if any may need them
-  std::vector<MprisPlayer> mpris_players;
-  const bool needs_mpris = std::ranges::any_of(results, [](const Result& result) {
+  std::vector<int> process_ids;
+  for (const auto& result : results) {
     const auto& strategies = result.player.strategies;
-    return std::ranges::find(strategies, Strategy::MediaControl) !=
-           strategies.end();
-  });
-  if (needs_mpris) {
-    EnumerateMprisPlayers([&mpris_players](const MprisPlayer& player) {
+    if (std::ranges::find(strategies, Strategy::MediaControl) != strategies.end())
+      process_ids.push_back(result.process.id);
+  }
+
+  std::vector<MprisPlayer> mpris_players;
+  if (!process_ids.empty()) {
+    EnumerateMprisPlayers(process_ids, [&mpris_players](const MprisPlayer& player) {
       mpris_players.push_back(player);
       return true;
     });

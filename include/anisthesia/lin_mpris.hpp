@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <string>
+#include <vector>
 
 #include <anisthesia/media.hpp>
 
@@ -20,6 +21,8 @@ struct MprisPlayer {
 
 using mpris_proc_t = std::function<bool(const MprisPlayer&)>;
 
-bool EnumerateMprisPlayers(mpris_proc_t mpris_proc);
+// Only the players owned by the given processes are queried.
+bool EnumerateMprisPlayers(const std::vector<int>& process_ids,
+                           mpris_proc_t mpris_proc);
 
 }  // namespace anisthesia::lin::detail

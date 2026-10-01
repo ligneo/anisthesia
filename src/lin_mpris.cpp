@@ -2,6 +2,7 @@
 
 #ifdef ANISTHESIA_MPRIS
 
+#include <algorithm>
 #include <chrono>
 #include <cstdint>
 #include <cstdlib>
@@ -10,6 +11,7 @@
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <vector>
 
 #include <systemd/sd-bus.h>
 
@@ -209,7 +211,8 @@ bool GetPlayer(sd_bus* bus, const char* service, MprisPlayer& player) {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-bool EnumerateMprisPlayers(mpris_proc_t mpris_proc) {
+bool EnumerateMprisPlayers(const std::vector<int>& process_ids,
+                           mpris_proc_t mpris_proc) {
   sd_bus* bus = nullptr;
   if (sd_bus_open_user(&bus) < 0)
     return false;
@@ -226,10 +229,11 @@ bool EnumerateMprisPlayers(mpris_proc_t mpris_proc) {
 
     MprisPlayer player;
 
-    // Proxies such as playerctld have a process of their own, which no player
-    // entry matches, so they need no special handling here.
+    // Other services, including proxies such as playerctld, are not queried
     player.process_id = GetProcessId(bus, *name);
-    if (!player.process_id || IsTorBrowser(player.process_id))
+    if (std::ranges::find(process_ids, player.process_id) == process_ids.end())
+      continue;
+    if (IsTorBrowser(player.process_id))
       continue;
 
     if (!GetPlayer(bus, *name, player))
@@ -248,7 +252,7 @@ bool EnumerateMprisPlayers(mpris_proc_t mpris_proc) {
 
 namespace anisthesia::lin::detail {
 
-bool EnumerateMprisPlayers(mpris_proc_t) {
+bool EnumerateMprisPlayers(const std::vector<int>&, mpris_proc_t) {
   return false;
 }
 
