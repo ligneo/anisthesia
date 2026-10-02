@@ -557,3 +557,17 @@ Waterfox
 			^(.+) - Waterfox(?: \(Private Browsing\))?
 	type:
 		web_browser
+
+Zen Browser
+	windows:
+		MozillaWindowClass
+	executables:
+		zen
+		zen-bin
+	strategies:
+		media_control
+		ui_automation
+		window_title:
+			^(?:Zen|Zen Browser)|(.+) (?:-|—) Zen(?: Browser)?(?: \(Private Browsing\))?
+	type:
+		web_browser
