@@ -11,6 +11,7 @@
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <utility>
 #include <vector>
 
 #include <systemd/sd-bus.h>
@@ -39,6 +40,9 @@ struct MessageDeleter {
 struct CredsDeleter {
   void operator()(sd_bus_creds* creds) const { sd_bus_creds_unref(creds); }
 };
+struct SlotDeleter {
+  void operator()(sd_bus_slot* slot) const { sd_bus_slot_unref(slot); }
+};
 struct StrvDeleter {
   void operator()(char** strv) const {
     for (auto str = strv; *str; ++str)
@@ -50,6 +54,7 @@ struct StrvDeleter {
 using bus_ptr = std::unique_ptr<sd_bus, BusDeleter>;
 using message_ptr = std::unique_ptr<sd_bus_message, MessageDeleter>;
 using creds_ptr = std::unique_ptr<sd_bus_creds, CredsDeleter>;
+using slot_ptr = std::unique_ptr<sd_bus_slot, SlotDeleter>;
 using strv_ptr = std::unique_ptr<char*[], StrvDeleter>;
 
 // Tor Browser is Firefox, down to the process name and the MPRIS service, so
@@ -158,22 +163,7 @@ MediaState ToMediaState(const std::string_view playback_status) {
   return MediaState::Unknown;
 }
 
-bool GetPlayer(sd_bus* bus, const char* service, MprisPlayer& player) {
-  sd_bus_message* request = nullptr;
-  if (sd_bus_message_new_method_call(bus, &request, service, kObjectPath,
-                                     "org.freedesktop.DBus.Properties",
-                                     "GetAll") < 0)
-    return false;
-  const message_ptr request_guard{request};
-
-  if (sd_bus_message_append(request, "s", kPlayerInterface) < 0)
-    return false;
-
-  sd_bus_message* reply = nullptr;
-  if (sd_bus_call(bus, request, kTimeout, nullptr, &reply) < 0)
-    return false;
-  const message_ptr reply_guard{reply};
-
+bool ReadPlayer(sd_bus_message* reply, MprisPlayer& player) {
   auto read_metadata = [&](const std::string_view key) {
     if (key == "xesam:title")
       return ReadVariant(reply, player.title);
@@ -207,6 +197,66 @@ bool GetPlayer(sd_bus* bus, const char* service, MprisPlayer& player) {
   return ReadDictionary(reply, read_property);
 }
 
+struct PendingPlayer {
+  const char* service = nullptr;
+  MprisPlayer player;
+  bool answered = false;
+  bool ok = false;
+};
+
+int OnPlayerReply(sd_bus_message* reply, void* userdata, sd_bus_error*) {
+  auto& pending = *static_cast<PendingPlayer*>(userdata);
+  pending.answered = true;
+  pending.ok = !sd_bus_message_is_method_error(reply, nullptr) &&
+               ReadPlayer(reply, pending.player);
+  return 0;
+}
+
+bool RequestPlayer(sd_bus* bus, PendingPlayer& pending, sd_bus_slot** slot) {
+  sd_bus_message* request = nullptr;
+  if (sd_bus_message_new_method_call(bus, &request, pending.service,
+                                     kObjectPath,
+                                     "org.freedesktop.DBus.Properties",
+                                     "GetAll") < 0)
+    return false;
+  const message_ptr request_guard{request};
+
+  if (sd_bus_message_append(request, "s", kPlayerInterface) < 0)
+    return false;
+
+  return sd_bus_call_async(bus, slot, request, OnPlayerReply, &pending,
+                           kTimeout) >= 0;
+}
+
+// Handles replies until every request is answered. A request that is not
+// answered in time gets an error reply from sd-bus, once the bus is processed
+// after its deadline, so each wait lasts until the earliest pending deadline.
+void WaitForReplies(sd_bus* bus, const std::vector<PendingPlayer>& pending) {
+  auto is_waiting = [&] {
+    return std::ranges::any_of(
+        pending, [](const PendingPlayer& p) { return !p.answered; });
+  };
+
+  while (is_waiting()) {
+    const int r = sd_bus_process(bus, nullptr);
+    if (r < 0)
+      return;
+    if (r > 0)
+      continue;
+
+    std::uint64_t deadline = 0;
+    if (sd_bus_get_timeout(bus, &deadline) < 0 || deadline == UINT64_MAX)
+      return;
+    // The deadline is on CLOCK_MONOTONIC, which is what steady_clock reads
+    const std::uint64_t now =
+        std::chrono::duration_cast<std::chrono::microseconds>(
+            std::chrono::steady_clock::now().time_since_epoch())
+            .count();
+    if (sd_bus_wait(bus, deadline > now ? deadline - now : 0) < 0)
+      return;
+  }
+}
+
 }  // namespace
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -223,23 +273,42 @@ bool EnumerateMprisPlayers(const std::vector<int>& process_ids,
     return false;
   const strv_ptr names_guard{names};
 
+  std::vector<PendingPlayer> pending;
   for (auto name = names; name && *name; ++name) {
     if (!std::string_view{*name}.starts_with(kServicePrefix))
       continue;
 
-    MprisPlayer player;
+    PendingPlayer player;
+    player.service = *name;
 
     // Other services, including proxies such as playerctld, are not queried
-    player.process_id = GetProcessId(bus, *name);
-    if (std::ranges::find(process_ids, player.process_id) == process_ids.end())
+    player.player.process_id = GetProcessId(bus, *name);
+    if (std::ranges::find(process_ids, player.player.process_id) ==
+        process_ids.end())
       continue;
-    if (IsTorBrowser(player.process_id))
-      continue;
-
-    if (!GetPlayer(bus, *name, player))
+    if (IsTorBrowser(player.player.process_id))
       continue;
 
-    if (!mpris_proc(player))
+    pending.push_back(std::move(player));
+  }
+
+  // All requests are sent before any reply is awaited, so that players that do
+  // not answer time out together rather than one after another. The slots are
+  // released before `pending`, which they point into, and it no longer moves.
+  std::vector<slot_ptr> slots;
+  slots.reserve(pending.size());
+  for (auto& player : pending) {
+    sd_bus_slot* slot = nullptr;
+    if (RequestPlayer(bus, player, &slot))
+      slots.emplace_back(slot);
+    else
+      player.answered = true;
+  }
+
+  WaitForReplies(bus, pending);
+
+  for (const auto& player : pending) {
+    if (player.ok && !mpris_proc(player.player))
       break;
   }
 
