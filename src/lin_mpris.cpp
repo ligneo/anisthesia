@@ -14,7 +14,11 @@
 #include <utility>
 #include <vector>
 
+#ifdef ANISTHESIA_MPRIS_BASU
+#include <basu/sd-bus.h>
+#else
 #include <systemd/sd-bus.h>
+#endif
 
 #include <anisthesia/media.hpp>
 #include <anisthesia/util.hpp>

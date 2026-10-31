@@ -40,14 +40,23 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
 		src/lin_strategies.cpp
 	)
 
-	# Media control (MPRIS) needs sd-bus. It can be left out with
-	# -DANISTHESIA_MPRIS=OFF, in which case players are detected by their open
-	# files only and web browsers are not detected at all.
+	# Media control (MPRIS) needs sd-bus, which is provided by systemd, elogind
+	# or basu. It can be left out with -DANISTHESIA_MPRIS=OFF, in which case
+	# players are detected by their open files only and web browsers are not
+	# detected at all.
 	option(ANISTHESIA_MPRIS "Read media control information via sd-bus" ON)
 	if (ANISTHESIA_MPRIS)
 		find_package(PkgConfig REQUIRED)
-		pkg_check_modules(SYSTEMD REQUIRED IMPORTED_TARGET GLOBAL libsystemd)
+		pkg_search_module(SDBUS IMPORTED_TARGET GLOBAL libsystemd libelogind basu)
+		if (NOT SDBUS_FOUND)
+			message(FATAL_ERROR "MPRIS needs sd-bus from libsystemd, libelogind or basu. "
+				"Install one of them, or configure with -DANISTHESIA_MPRIS=OFF.")
+		endif()
 		target_compile_definitions(anisthesia INTERFACE ANISTHESIA_MPRIS)
-		target_link_libraries(anisthesia INTERFACE PkgConfig::SYSTEMD)
+		# basu installs its headers under basu/ instead of systemd/
+		if (SDBUS_MODULE_NAME STREQUAL "basu")
+			target_compile_definitions(anisthesia INTERFACE ANISTHESIA_MPRIS_BASU)
+		endif()
+		target_link_libraries(anisthesia INTERFACE PkgConfig::SDBUS)
 	endif()
 endif()
