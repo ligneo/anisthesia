@@ -10,6 +10,11 @@ namespace anisthesia::lin::detail {
 namespace fs = std::filesystem;
 
 bool IsSystemDirectory(const std::string& path) {
+  // udisks2 mounts removable drives under /run/media/$USER, unless they are
+  // shared, in which case they go to /media
+  if (path.starts_with("/run/media/"))
+    return false;
+
   static constexpr std::string_view directories[] = {
       "/dev/", "/proc/", "/sys/", "/run/", "/usr/", "/etc/", "/var/lib/",
   };
