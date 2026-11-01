@@ -25,6 +25,10 @@ std::string GetCommandName(const fs::path& process_path) {
   return name;
 }
 
+std::string GetCommandName(const int process_id) {
+  return GetCommandName(fs::path("/proc") / std::to_string(process_id));
+}
+
 std::string GetProcessName(const fs::path& process_path) {
   // The executable path is only readable for our own processes, which is fine
   // since we cannot read the open files of other users' processes either.
@@ -58,8 +62,6 @@ bool EnumerateProcesses(process_proc_t process_proc) {
     process.name = GetProcessName(entry.path());
     if (process.name.empty())
       continue;
-
-    process.comm = GetCommandName(entry.path());
 
     if (!process_proc(process))
       break;

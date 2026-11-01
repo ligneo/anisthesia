@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <regex>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <anisthesia/media.hpp>
@@ -71,14 +72,14 @@ bool GetResults(const std::vector<Player>& players, media_proc_t media_proc,
     matchers.emplace_back(player);
 
   auto process_proc = [&](const Process& process) -> bool {
-    if (detail::IsHelperProcess(process))
-      return true;
-
     for (const auto& matcher : matchers) {
-      if (matcher.Matches(process)) {
-        results.push_back({matcher.player(), process, {}});
-        break;
-      }
+      if (!matcher.Matches(process))
+        continue;
+      Process player_process = process;
+      player_process.comm = detail::GetCommandName(process.id);
+      if (!detail::IsHelperProcess(player_process))
+        results.push_back({matcher.player(), std::move(player_process), {}});
+      break;
     }
     return true;
   };
