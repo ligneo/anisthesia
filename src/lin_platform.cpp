@@ -27,22 +27,37 @@ bool IsHelperProcess(const Process& process) {
   return !anisthesia::detail::util::EqualStrings(name, process.comm);
 }
 
-bool IsPlayerProcess(const Process& process, const Player& player) {
-  auto check_pattern = [](const std::string& pattern, const std::string& str) {
-    if (pattern.empty())
-      return false;
-    if (pattern.front() == '^' && std::regex_match(str, std::regex(pattern)))
-      return true;
-    return anisthesia::detail::util::EqualStrings(pattern, str);
-  };
-
-  // Window classes are not available, so we can only check executables
-  for (const auto& pattern : player.executables) {
-    if (check_pattern(pattern, process.name))
-      return true;
+// Window classes are not available, so players are told apart by their
+// executables only. The patterns are prepared once for all processes, since
+// compiling a regular expression costs far more than matching it.
+class PlayerMatcher {
+public:
+  explicit PlayerMatcher(const Player& player) : player_(player) {
+    for (const auto& pattern : player.executables) {
+      if (!pattern.empty() && pattern.front() == '^')
+        regexes_.emplace_back(pattern);
+    }
   }
-  return false;
-}
+
+  const Player& player() const { return player_; }
+
+  bool Matches(const Process& process) const {
+    for (const auto& regex : regexes_) {
+      if (std::regex_match(process.name, regex))
+        return true;
+    }
+    for (const auto& pattern : player_.executables) {
+      if (!pattern.empty() &&
+          anisthesia::detail::util::EqualStrings(pattern, process.name))
+        return true;
+    }
+    return false;
+  }
+
+private:
+  const Player& player_;
+  std::vector<std::regex> regexes_;
+};
 
 }  // namespace detail
 
@@ -50,13 +65,18 @@ bool IsPlayerProcess(const Process& process, const Player& player) {
 
 bool GetResults(const std::vector<Player>& players, media_proc_t media_proc,
                 std::vector<Result>& results) {
+  std::vector<detail::PlayerMatcher> matchers;
+  matchers.reserve(players.size());
+  for (const auto& player : players)
+    matchers.emplace_back(player);
+
   auto process_proc = [&](const Process& process) -> bool {
     if (detail::IsHelperProcess(process))
       return true;
 
-    for (const auto& player : players) {
-      if (detail::IsPlayerProcess(process, player)) {
-        results.push_back({player, process, {}});
+    for (const auto& matcher : matchers) {
+      if (matcher.Matches(process)) {
+        results.push_back({matcher.player(), process, {}});
         break;
       }
     }
