@@ -29,6 +29,18 @@ std::string GetCommandName(const int process_id) {
   return GetCommandName(fs::path("/proc") / std::to_string(process_id));
 }
 
+// A player written in a scripting language runs as its interpreter, e.g.
+// "python3.14" for GNOME's Showtime, while the command name is that of the
+// script that was started.
+bool IsInterpreter(const std::string_view name) {
+  constexpr std::string_view prefixes[]{"python", "perl", "ruby"};
+  for (const auto prefix : prefixes) {
+    if (name.starts_with(prefix))
+      return true;
+  }
+  return name == "node" || name == "gjs";
+}
+
 std::string GetProcessName(const fs::path& process_path) {
   // The executable path is only readable for our own processes, which is fine
   // since we cannot read the open files of other users' processes either.
@@ -41,6 +53,8 @@ std::string GetProcessName(const fs::path& process_path) {
     auto name = executable_path.filename().string();
     if (name.ends_with(deleted))
       name.resize(name.size() - deleted.size());
+    if (IsInterpreter(name))
+      return GetCommandName(process_path);
     return name;
   }
 
