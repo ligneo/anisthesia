@@ -88,6 +88,12 @@ Celluloid
 	strategies:
 		open_files
 
+Clapper
+	executables:
+		clapper
+	strategies:
+		open_files
+
 DivX Player
 	windows:
 		Qt5QWindowIcon
@@ -95,6 +101,18 @@ DivX Player
 	executables:
 		DivX Player
 		DivX Plus Player
+	strategies:
+		open_files
+
+Dragon Player
+	executables:
+		dragon
+	strategies:
+		open_files
+
+GNOME Videos
+	executables:
+		totem
 	strategies:
 		open_files
 
@@ -261,6 +279,12 @@ MPDN
 		window_title:
 			^MPDN - Media Player .NET \((?:32|64)-bit Edition\)|(.*) - MPDN \((?:32|64)-bit Edition\)
 
+MPlayer
+	executables:
+		mplayer
+	strategies:
+		open_files
+
 mpv
 	windows:
 		mpv
@@ -295,6 +319,12 @@ MV2Player
 		window_title:
 			^MV2 Player|(.+)
 
+Parole
+	executables:
+		parole
+	strategies:
+		open_files
+
 PotPlayer
 	windows:
 		PotPlayer
@@ -311,6 +341,12 @@ PotPlayer
 		open_files
 		window_title:
 			^PotPlayer|(.+) - PotPlayer
+
+Showtime
+	executables:
+		showtime
+	strategies:
+		open_files
 
 SMPlayer
 	windows:
